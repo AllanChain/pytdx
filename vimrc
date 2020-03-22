@@ -1,22 +1,18 @@
-if empty(glob('~/.vim/autoload/plug.vim'))
-    silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
-                \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-    autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+if has('win64') || has('win32') || has('win16')
+    let g:dot_vim = '~/vimfiles'
+else
+    let g:dot_vim = '~/.vim'
 endif
 
-if filereadable($HOME . "/.vim/local/before.vim")
-    source $HOME/.vim/local/before.vim
+if filereadable(g:dot_vim . '/local/before.vim')
+    source g:dot_vim/local/before.vim
 endif
 
 " Vim-Plug{{{
-if has("win64") || has("win32") || has("win16")
-    call plug#begin('~/vimfiles/bundle')
-else
-    call plug#begin('~/.vim/bundle')
-endif
+call plug#begin(g:dot_vim . '/bundle')
 
-if filereadable($HOME . "/.vim/local/plugins.vim")
-    source $HOME/.vim/local/plugins.vim
+if filereadable(g:dot_vim . '/plugins.vim')
+    source g:dot_vim . '/plugins.vim'
 endif
 
 Plug 'vim-airline/vim-airline'
@@ -39,7 +35,7 @@ Plug 'dense-analysis/ale'
 Plug 'sheerun/vim-polyglot'
 Plug 'ap/vim-css-color', { 'for': ['html', 'css', 'vue'] }
 " Snippets
-if has("python") || has("python3")
+if has('python') || has('python3')
     Plug 'honza/vim-snippets'
     Plug 'SirVer/ultisnips'
 endif
@@ -61,7 +57,7 @@ set termencoding=utf-8
 set ffs=unix,dos
 "}}}
 "gvim menu{{{
-if has("gui_running")
+if has('gui_running')
     set langmenu=en_US.UTF-8
     source $VIMRUNTIME/delmenu.vim
     source $VIMRUNTIME/menu.vim
@@ -114,7 +110,7 @@ set backupdir=$HOME/.vim_temp/
 map <F2> :NERDTreeToggle<CR>
 map <F5> :call RunPro()<CR>
 imap <F5> <Esc>:call RunPro()<CR>
-let mapleader=";"
+let mapleader=';'
 map <leader>s :w<CR>
 imap <leader>s <Esc>:w<CR>
 imap <leader><leader> <Esc>
@@ -127,7 +123,7 @@ map <space>f :PymodeLintAuto<CR>
 " indentLine setup{{{
 " let g:indentLine_setColors = 0
 let g:indentLine_color_term = 239
-let g:indentLine_concealcursor=""
+let g:indentLine_concealcursor=''
 let g:indentLine_conceallevel=1
 "}}}
 " airline setup{{{
@@ -160,33 +156,33 @@ let g:airline_mode_map = {
             \ '' : 'VB'}
 "}}}
 " 回到上次退出位置{{{
-au BufReadPost * exe "normal! g`\""
+au BufReadPost * exe 'normal! g`"'
 "}}}
 " Auto open NERDTree{{{
-autocmd VimEnter * if argc() == 1 && isdirectory(argv()[0]) && !exists("s:std_in") | exe 'NERDTree' argv()[0] | wincmd p | ene | endif
+autocmd VimEnter * if argc() == 1 && isdirectory(argv()[0]) && !exists('s:std_in') | exe 'NERDTree' argv()[0] | wincmd p | ene | endif
 "}}}
 "Quickly Run{{{
-let timer="!time "
-if has("win64") || has("win32") || has("win16")
-    let timer="!"
+let timer='!time '
+if has('win64') || has('win32') || has('win16')
+    let timer='!'
 endif
 func! RunPro()
-    exec "w"
+    exec 'w'
     if &filetype == 'c'
-        exec "!g++ % -o %< && time ./%<"
+        exec '!g++ % -o %< && time ./%<'
     elseif &filetype == 'cpp'
-        exec "!g++ % -o %< && time ./%<"
+        exec '!g++ % -o %< && time ./%<'
     elseif &filetype == 'java'
-        exec "!javac %"
-        exec timer . "java %<"
+        exec '!javac %'
+        exec timer . 'java %<'
     elseif &filetype == 'sh'
-        exec timer . "bash %"
+        exec timer . 'bash %'
     elseif &filetype == 'python'
-        exec timer . "python3 %"
+        exec timer . 'python3 %'
     elseif &filetype == 'javascript'
-        exec timer . "node %"
+        exec timer . 'node %'
     elseif &filetype == 'go'
-        exec timer . "go run %"
+        exec timer . 'go run %'
     endif
 endfunc
 "}}}
@@ -205,6 +201,6 @@ let g:ale_completion_enabled = 0
 let g:ale_lint_on_enter = 0
 let g:ale_fix_on_save = 0
 "}}}
-if filereadable($HOME . "/.vim/local/after.vim")
-    source $HOME/.vim/local/after.vim
+if filereadable(g:dot_vim . '/after.vim')
+    source g:dot_vim . '/after.vim'
 endif
