@@ -32,6 +32,10 @@ Plug 'python-mode/python-mode', { 'for': 'python', 'branch': 'develop' }
 ### `~/.vim/local/before.vim`
 ### `~/.vim/local/after.vim`
 
+Please modify `fileencodings`
+```vim
+set fileencodings=utf-8,gbk,gb18030,ucs-bom,cp936
+```
 ## Thing to notice
 
 ### Airline Mode Name

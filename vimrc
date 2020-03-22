@@ -50,7 +50,7 @@ set cursorline
 set foldmethod=marker
 set updatetime=700  " vim-gitgutter
 set nu
-" 设置编码{{{
+" Encoding and EOL{{{
 set encoding=utf-8
 set fileencodings=utf-8,gbk,gb18030,ucs-bom,cp936
 set termencoding=utf-8
@@ -64,12 +64,12 @@ if has('gui_running')
     language messages en_US.utf-8
 endif
 "}}}
-" 设置Tab键的宽度{{{
+" Tab{{{
 set autoindent
 set smartindent
-set expandtab " Tab转空格
-setlocal tabstop=4 " 统一缩进为4
-setlocal shiftwidth=4 "自动缩进长度
+set expandtab          " Tab to space
+setlocal tabstop=4     " indent 4 spaces
+setlocal shiftwidth=4  " 4 space for auto indent
 setlocal softtabstop=4
 func! SetTab()
     setlocal sw=2
@@ -120,11 +120,42 @@ map <space>s :source $HOME/.vim/vimrc<CR>
 map <space>= mLggVG='L
 map <space>f :PymodeLintAuto<CR>
 "}}}
+" Back to the exit place{{{
+au BufReadPost * exe 'normal! g`"'
+"}}}
+"Quickly Run{{{
+let timer='!time '
+if has('win64') || has('win32') || has('win16')
+    let timer='!'
+endif
+func! RunPro()
+    exec 'w'
+    if &filetype == 'c'
+        exec '!g++ % -o %< && time ./%<'
+    elseif &filetype == 'cpp'
+        exec '!g++ % -o %< && time ./%<'
+    elseif &filetype == 'java'
+        exec '!javac %'
+        exec timer . 'java %<'
+    elseif &filetype == 'sh'
+        exec timer . 'bash %'
+    elseif &filetype == 'python'
+        exec timer . 'python3 %'
+    elseif &filetype == 'javascript'
+        exec timer . 'node %'
+    elseif &filetype == 'go'
+        exec timer . 'go run %'
+    endif
+endfunc
+"}}}
+" Auto open NERDTree{{{
+autocmd VimEnter * if argc() == 1 && isdirectory(argv()[0]) && !exists('s:std_in') | exe 'NERDTree' argv()[0] | wincmd p | ene | endif
+"}}}
 " indentLine setup{{{
 " let g:indentLine_setColors = 0
 let g:indentLine_color_term = 239
 let g:indentLine_concealcursor=''
-let g:indentLine_conceallevel=1
+let g:indentLine_conceallevel=2
 "}}}
 " airline setup{{{
 let g:airline_theme = 'badwolf'
@@ -154,37 +185,6 @@ let g:airline_mode_map = {
             \ 'v'  : 'V',
             \ 'V'  : 'VL',
             \ '' : 'VB'}
-"}}}
-" 回到上次退出位置{{{
-au BufReadPost * exe 'normal! g`"'
-"}}}
-" Auto open NERDTree{{{
-autocmd VimEnter * if argc() == 1 && isdirectory(argv()[0]) && !exists('s:std_in') | exe 'NERDTree' argv()[0] | wincmd p | ene | endif
-"}}}
-"Quickly Run{{{
-let timer='!time '
-if has('win64') || has('win32') || has('win16')
-    let timer='!'
-endif
-func! RunPro()
-    exec 'w'
-    if &filetype == 'c'
-        exec '!g++ % -o %< && time ./%<'
-    elseif &filetype == 'cpp'
-        exec '!g++ % -o %< && time ./%<'
-    elseif &filetype == 'java'
-        exec '!javac %'
-        exec timer . 'java %<'
-    elseif &filetype == 'sh'
-        exec timer . 'bash %'
-    elseif &filetype == 'python'
-        exec timer . 'python3 %'
-    elseif &filetype == 'javascript'
-        exec timer . 'node %'
-    elseif &filetype == 'go'
-        exec timer . 'go run %'
-    endif
-endfunc
 "}}}
 " ale setup{{{
 let g:ale_lint_on_text_changed=0
