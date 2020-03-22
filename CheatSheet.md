@@ -12,7 +12,9 @@
 
 <details>
 <summary>At <code>vim-airline/autoload/init.vim</code></summary>
-<pre>
+<!--Terminate HTML with a new line-->
+
+```vim
 call extend(g:airline_mode_map, {
         \ '__' : '------',
         \ 'c'  : 'COMMAND',
@@ -33,5 +35,5 @@ call extend(g:airline_mode_map, {
         \ 'V'  : 'V-LINE',
         \ '' : 'V-BLOCK',
         \ }, 'keep')
-</pre>
+```
 </details>
