@@ -1,18 +1,18 @@
 if has('win64') || has('win32') || has('win16')
-    let g:dot_vim = '~/vimfiles'
+    let g:dot_vim = $HOME . '/vimfiles'
 else
-    let g:dot_vim = '~/.vim'
+    let g:dot_vim = $HOME . '/.vim'
 endif
 
 if filereadable(g:dot_vim . '/local/before.vim')
-    source g:dot_vim/local/before.vim
+    exec 'source ' . g:dot_vim . '/local/before.vim'
 endif
 
 " Vim-Plug{{{
 call plug#begin(g:dot_vim . '/bundle')
 
-if filereadable(g:dot_vim . '/plugins.vim')
-    source g:dot_vim . '/plugins.vim'
+if filereadable(g:dot_vim . '/local/plugins.vim')
+    exec 'source ' . g:dot_vim . '/local/plugins.vim'
 endif
 
 Plug 'vim-airline/vim-airline'
@@ -201,6 +201,6 @@ let g:ale_completion_enabled = 0
 let g:ale_lint_on_enter = 0
 let g:ale_fix_on_save = 0
 "}}}
-if filereadable(g:dot_vim . '/after.vim')
-    source g:dot_vim . '/after.vim'
+if filereadable(g:dot_vim . '/local/after.vim')
+    exec 'source ' . g:dot_vim . '/local/after.vim'
 endif
