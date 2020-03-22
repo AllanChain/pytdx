@@ -10,9 +10,9 @@
 
 ### Airline mode default
 
-At `vim-airline/autoload/init.vim`
-
-```vim
+<details>
+<summary>At <code>vim-airline/autoload/init.vim</code></summary>
+<pre>
 call extend(g:airline_mode_map, {
         \ '__' : '------',
         \ 'c'  : 'COMMAND',
@@ -33,4 +33,5 @@ call extend(g:airline_mode_map, {
         \ 'V'  : 'V-LINE',
         \ '' : 'V-BLOCK',
         \ }, 'keep')
-```
+</pre>
+</details>
