@@ -209,6 +209,11 @@ let g:ale_completion_enabled = 0
 let g:ale_lint_on_enter = 0
 let g:ale_fix_on_save = 0
 "}}}
+" UltiSnips{{{
+let g:UltiSnipsExpandTrigger="<leader>q"
+let g:UltiSnipsJumpForwardTrigger="<c-p>"
+let g:UltiSnipsJumpBackwardTrigger="<c-b>"
+"}}}
 if filereadable(g:dot_vim . '/local/after.vim')
     exec 'source ' . g:dot_vim . '/local/after.vim'
 endif
