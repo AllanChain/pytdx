@@ -115,8 +115,14 @@ map <leader>s :w<CR>
 imap <leader>s <Esc>:w<CR>
 imap <leader><leader> <Esc>
 vmap <leader><leader> <Esc>
-map <space>v :e $HOME/.vim/vimrc<CR>
-map <space>s :source $HOME/.vim/vimrc<CR>
+if has('win64') || has('win32') || has('win16')
+    imap <C-V> <C-R>+
+    map <space>v :e $HOME/vimfiles/vimrc<CR>
+    map <space>s :source $HOME/vimfiles/vimrc<CR>
+else
+    map <space>v :e $HOME/.vim/vimrc<CR>
+    map <space>s :source $HOME/.vim/vimrc<CR>
+endif
 map <space>= mLggVG='L
 map <space>f :PymodeLintAuto<CR>
 "}}}
