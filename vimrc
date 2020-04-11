@@ -125,6 +125,8 @@ else
 endif
 map <space>= mLggVG='L
 map <space>f :PymodeLintAuto<CR>
+imap · ``<Left>
+imap 》<space> ><space>
 "}}}
 " Back to the exit place{{{
 au BufReadPost * exe 'normal! g`"'
