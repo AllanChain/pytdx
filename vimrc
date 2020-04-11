@@ -132,9 +132,9 @@ imap 》<space> ><space>
 au BufReadPost * exe 'normal! g`"'
 "}}}
 "Quickly Run{{{
-let timer='!time '
+let g:timer='!time '
 if has('win64') || has('win32') || has('win16')
-    let timer='!'
+    let g:timer='!'
 endif
 func! RunPro()
     exec 'w'
@@ -144,15 +144,15 @@ func! RunPro()
         exec '!g++ % -o %< && time ./%<'
     elseif &filetype == 'java'
         exec '!javac %'
-        exec timer . 'java %<'
+        exec g:timer . 'java %<'
     elseif &filetype == 'sh'
-        exec timer . 'bash %'
+        exec g:timer . 'bash %'
     elseif &filetype == 'python'
-        exec timer . 'python3 %'
+        exec g:timer . 'python3 %'
     elseif &filetype == 'javascript'
-        exec timer . 'node %'
+        exec g:timer . 'node %'
     elseif &filetype == 'go'
-        exec timer . 'go run %'
+        exec g:timer . 'go run %'
     endif
 endfunc
 "}}}
