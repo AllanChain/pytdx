@@ -1,7 +1,6 @@
 # coding=utf-8
 
 from pytdx.parser.base import BaseParser
-from pytdx.helper import get_datetime, get_volume, get_price
 from collections import OrderedDict
 import struct
 
@@ -29,11 +28,10 @@ class GetSecurityList(BaseParser):
 
             (code, volunit,
              name_bytes, reversed_bytes1, decimal_point,
-             pre_close_raw, reversed_bytes2) = struct.unpack("<6sH8s4sBI4s", one_bytes)
+             pre_close, reversed_bytes2) = struct.unpack("<6sH8sLBf4s", one_bytes)
 
             code = code.decode("utf-8")
             name = name_bytes.decode("gbk").rstrip("\x00")
-            pre_close = get_volume(pre_close_raw)
             pos += 29
 
             one = OrderedDict(
