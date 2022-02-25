@@ -31,11 +31,7 @@ class GetSecurityList(BaseParser):
              pre_close, reversed_bytes2) = struct.unpack("<6sH8sLBf4s", one_bytes)
 
             code = code.decode("utf-8")
-            try:
-                name = name_bytes.decode("gbk").rstrip("\x00")
-            except UnicodeDecodeError:
-                print('Bad name bytes:', name_bytes)
-                name = '解码错误'
+            name = name_bytes.decode("gbk", "ignore").rstrip("\x00")
             pos += 29
 
             one = OrderedDict(
