@@ -30,18 +30,23 @@ class GetHistoryMinuteTimeData(BaseParser):
         pos = 0
         (num, ) = struct.unpack("<H", body_buf[:2])
         last_price = 0
+        last_ave = 0
         # 跳过了4个字节，实在不知道是什么意思
         pos += 6
         prices = []
-        for i in range(num):
+        for _ in range(num):
             price_raw, pos = get_price(body_buf, pos)
-            reversed1, pos = get_price(body_buf, pos)
+            ave_raw, pos = get_price(body_buf, pos)
             vol, pos = get_price(body_buf, pos)
+            if last_ave == 0:
+                last_ave = price_raw
             last_price = last_price + price_raw
+            last_ave += ave_raw / 100
             price = OrderedDict(
                 [
-                    ("price", float(last_price)/100),
-                    ("vol", vol)
+                    ("price", float(last_price) / 100),
+                    ("vol", vol),
+                    ("ave", float(last_ave) / 100),
                 ]
             )
             prices.append(price)
