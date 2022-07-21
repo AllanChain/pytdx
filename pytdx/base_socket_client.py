@@ -8,7 +8,6 @@
 import os
 import socket
 import sys
-import pandas as pd
 
 if __name__ == '__main__':
     sys.path.insert(0, os.path.dirname(
@@ -265,6 +264,8 @@ class BaseSocketClient(object):
         self.close()
 
     def to_df(self, v):
+        import pandas as pd
+
         if isinstance(v, list):
             return pd.DataFrame(data=v)
         elif isinstance(v, dict):

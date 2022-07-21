@@ -61,11 +61,12 @@ setup(
     url='https://github.com/rainx/pytdx',
     packages=find_packages(),
     install_requires=[
-            'click',
-            'pandas',
-            'six',
-            'cryptography',
+        'click',
+        'six',
     ],
+    extras_require={
+        'trade': 'cryptography',
+    },
     entry_points={
         'console_scripts': [
             'hqget=pytdx.bin.hqget:main',
