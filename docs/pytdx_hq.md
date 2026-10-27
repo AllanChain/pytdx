@@ -66,6 +66,12 @@ api.get_security_quotes([(0, &amp;apos;000001&amp;apos;), (1, &amp;apos;600300&a
 > 
 注意点：非股票品种代码，有些获取的价格不是实际价格，比如可转债获取价格为实际价格*10。这是可能是TDX为了防止浮点数错误，报价在传输和存储时实际都保存为整数，然后根据品种进行处理的结果。@solensolen
 
+>
+注意点（2026-07 服务端协议更新后）：快照改为逐只股票串行请求（批量传入时内部循环），
+新协议只提供**一档**买/卖价（`bid1` / `ask1`），没有档位量和二至五档，
+这些字段返回 `None`；`active1` / `reversed_bytes*` 等调试字段同样为 `None`。
+`vol` 为服务端原样值（个股为手，指数为股）。
+
 
 ### 2 : 获取k线
 
@@ -85,7 +91,7 @@ api.get_security_quotes([(0, &amp;apos;000001&amp;apos;), (1, &amp;apos;600300&a
 </li>
 <li>start -&gt; 指定的范围开始位置;
 </li>
-<li>count -&gt; 用户要请求的 K 线数目，最大值为 800
+<li>count -&gt; 用户要请求的 K 线数目，最大值为 700
 </li>
 
 如：
@@ -131,7 +137,7 @@ api.get_security_list(1, 0)
 </li>
 <li>start -&gt; 指定的范围开始位置;
 </li>
-<li>count -&gt; 用户要请求的 K 线数目，最大值为 800
+<li>count -&gt; 用户要请求的 K 线数目，最大值为 700
 </li>
 
 如：
@@ -149,6 +155,8 @@ api.get_index_bars(9,1, &amp;apos;000001&amp;apos;, 1, 2)
 api.get_minute_time_data(1, &amp;apos;600300&amp;apos;)
 
 ```
+
+返回 `[{'price': 分钟末价, 'vol': 分钟成交量(手)}, ...]`，按时间升序。
 
 ### 7 : 查询历史分时行情
 

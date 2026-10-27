@@ -40,8 +40,9 @@ class TDXParams:
     # ref : https://github.com/rainx/pytdx/issues/7
     # 分笔行情最多2000条
     MAX_TRANSACTION_COUNT = 2000
-    # k先数据最多800条
-    MAX_KLINE_COUNT = 800
+    # k线数据单次最多 700 条（2026-07 服务端协议更新后的上限，
+    # 旧协议为 800）
+    MAX_KLINE_COUNT = 700
 
 
     # 板块相关参数

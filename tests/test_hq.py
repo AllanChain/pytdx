@@ -1,5 +1,6 @@
 #coding: utf-8
 
+import os
 from collections import OrderedDict
 
 import pandas as pd
@@ -7,6 +8,11 @@ import pytest
 from pytdx.errors import TdxConnectionError, TdxFunctionCallError
 from pytdx.hq import TdxHq_API, TDXParams
 import socket
+
+
+# 测试用的行情主站，可用环境变量覆盖；默认取一个当前可用的主站
+# （旧值 119.147.212.81 已无法连接）
+TEST_HOST = os.environ.get("PYTDX_TEST_HOST", "180.153.18.170")
 
 
 class Log(object):
@@ -26,7 +32,7 @@ def test_all_functions(multithread, heartbeat, auto_retry, raise_exception):
 
     api = TdxHq_API(multithread=multithread, heartbeat=heartbeat,
                     auto_retry=auto_retry, raise_exception=raise_exception)
-    with api.connect(ip="119.147.212.81", time_out=60):
+    with api.connect(ip=TEST_HOST, time_out=60):
         log.info("获取股票行情")
         stocks = api.get_security_quotes([(0, "000001"), (1, "600300")])
         assert stocks is not None
@@ -75,6 +81,8 @@ def test_all_functions(multithread, heartbeat, auto_retry, raise_exception):
         assert len(data) > 0
 
         log.info("查询分时成交")
+        # 2026-07 服务端协议更新后，当日逐笔的新协议帧尚未定位，这里可能返回空列表；
+        # 历史逐笔（下面的用例）不受影响
         data = api.get_transaction_data(TDXParams.MARKET_SZ, '000001', 0, 30)
         assert data is not None
         assert type(data) is list

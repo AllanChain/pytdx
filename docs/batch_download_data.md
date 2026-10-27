@@ -13,7 +13,7 @@ with api.connect():
      data=[]
 
       for i in range(10):
-              data+=api.get_security_bars(9,0,&amp;apos;000001&amp;apos;,(9-i)*800,800)
+              data+=api.get_security_bars(9,0,&amp;apos;000001&amp;apos;,(9-i)*700,700)
 print(api.to_df(data))
 
 ```
@@ -87,11 +87,11 @@ print(api.to_df(data))
 分别是
 
 ```
-0-799
+0-699
 
-800-1599
+700-1399
 
-1600-2399
+1400-2099
 
 ....
 
@@ -99,11 +99,11 @@ print(api.to_df(data))
 
 依次
 
-然后需要注意的是 0代表的是今天的指针 ,所以 指针获取方式要翻过来写 首先是 7200-7999的数据
+然后需要注意的是 0代表的是今天的指针 ,所以 指针获取方式要翻过来写 首先是 6300-6999的数据
 
-最后才是0-799的数据
+最后才是0-699的数据
 
-基本上 日线级别 8000条足够覆盖了
+基本上 日线级别 7000条足够覆盖了
 
 分钟线,小时线要长一点
 
@@ -120,7 +120,7 @@ def get_all_day_data():
         data=[]
 
         for i in range(10):
-              data+=api.get_security_bars(9,0,&amp;apos;000001&amp;apos;,(9-i)*800,800)
+              data+=api.get_security_bars(9,0,&amp;apos;000001&amp;apos;,(9-i)*700,700)
     print(api.to_df(data))
 
 ```

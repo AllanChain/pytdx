@@ -30,7 +30,7 @@ from pytdx.parser.get_security_quotes import GetSecurityQuotesCmd
 from pytdx.parser.get_transaction_data import GetTransactionData
 from pytdx.parser.get_xdxr_info import GetXdXrInfo
 from pytdx.parser.get_report_file import GetReportFile
-from pytdx.parser.setup_commands import SetupCmd1, SetupCmd2, SetupCmd3
+from pytdx.parser.setup_commands import SetupCmd1, SetupCmd2, SetupCmd3, SetupCmdV2
 
 if __name__ == '__main__':
     sys.path.append(os.path.dirname(
@@ -40,9 +40,13 @@ if __name__ == '__main__':
 class TdxHq_API(BaseSocketClient):
 
     def setup(self):
+        # 旧协议的会话（目录 / 财务 / 除权 / 历史分时等命令仍然只有旧帧可用）
         SetupCmd1(self.client).call_api()
         SetupCmd2(self.client).call_api()
         SetupCmd3(self.client).call_api()
+        # 新协议的登录帧（2026-07 起 K 线 / 快照 / 分时 / 逐笔等行情命令
+        # 必须使用新帧，否则服务端静默返回空数据）
+        SetupCmdV2(self.client).call_api()
 
     # API List
 
@@ -210,11 +214,13 @@ class TdxHq_API(BaseSocketClient):
         # https://github.com/rainx/pytdx/issues/33
         # 0 - 深圳， 1 - 上海
 
+        # 单次最多 700 条（服务端上限），10 页足够覆盖 20 年以上的日线
+        page_size = TDXParams.MAX_KLINE_COUNT
         data = pd.concat([self.to_df(self.get_security_bars(9, __select_market_code(
-            code), code, (9 - i) * 800, 800)) for i in range(10)], axis=0)
+            code), code, (9 - i) * page_size, page_size)) for i in range(10)], axis=0)
 
         data = data.assign(date=data['datetime'].apply(lambda x: str(x)[0:10])).assign(code=str(code))\
-            .set_index('date', drop=False, inplace=False)\
+            .set_index('date', drop=False)\
             .drop(['year', 'month', 'day', 'hour', 'minute', 'datetime'], axis=1)[start_date:end_date]
         return data.assign(date=data['date'].apply(lambda x: str(x)[0:10]))
 

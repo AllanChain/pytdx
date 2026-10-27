@@ -1,3 +1,12 @@
+1.73
+---
+* 修复 2026-07 通达信服务端协议更新后行情类接口全部返回空的问题，迁移到新一代行情帧（连接时额外发送 80 字节新协议登录帧 `SetupCmdV2`）：
+  * `get_security_bars` / `get_index_bars`：新帧，恢复可用（单次上限 700 条）
+  * `get_security_quotes`：新快照帧，恢复基本行情（价/量/额/一档买卖）；新协议不再提供二至五档和档位量，这些字段返回 `None`
+  * `get_minute_time_data`：新分时帧，恢复可用（返回 `price` / `vol`）
+* `TDXParams.MAX_KLINE_COUNT` 由 800 改为 700（新协议服务端单次上限），`get_k_data` 分页同步调整
+* 注意：`get_transaction_data`（当日逐笔）暂无已知的新协议帧，仍返回空；历史逐笔 `get_history_transaction_data` 不受影响
+
 1.72
 ---
 * 给GetSecurityQuotes添加解析后的时间字段 servertime, 参考  #187, 感谢 @liuyug

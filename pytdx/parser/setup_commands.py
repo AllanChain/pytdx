@@ -32,3 +32,27 @@ class SetupCmd3(BaseParser):
 
     def parseResponse(self, body_buf):
         return body_buf
+
+
+class SetupCmdV2(BaseParser):
+    """
+    新一代行情协议的登录帧（80 字节，官方客户端建连后立即发送）。
+
+    2026-07 起通达信服务端只对新帧格式的**行情类**请求应答（K 线 / 快照 /
+    分时 / 逐笔），旧的 `0c 02` 系请求会静默返回空数据。目录、财务、除权除息、
+    历史分时等命令仍旧使用老帧，所以连接建立后 SetupCmd1/2/3 和这一条登录帧
+    需要都发出去：先老后新，两类命令可以在同一条连接上交替使用。
+
+    参考: https://github.com/jiangtaovan/tdxrs/pull/14
+    """
+
+    def setup(self):
+        self.send_pkg = bytearray.fromhex(
+            u'000300010001460046000f1204002d31'
+            u'00000000000000000027100e00000000'
+            u'00000000000000000000000000000000'
+            u'00000000000000000000000000000000'
+            u'00000000000000000000000000000000')
+
+    def parseResponse(self, body_buf):
+        return body_buf
