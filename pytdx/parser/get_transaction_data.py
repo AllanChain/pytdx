@@ -1,14 +1,15 @@
 # coding=utf-8
 
-from collections import OrderedDict
 import struct
 
 import six
 
-from pytdx.helper import build_v2_request, get_price, get_time
+from pytdx.helper import build_v2_request
 from pytdx.log import log
 from pytdx.params import TDXParams
 from pytdx.parser.base import BaseParser
+from pytdx.parser.opening_auction import scan_opening_page
+from pytdx.parser.ticks import TODAY_LAYOUT, parse_ticks
 
 """
 当日分笔成交（含集合竞价段）
@@ -43,7 +44,7 @@ from pytdx.parser.base import BaseParser
 
     所以竞价数据有两条路：
       * `get_auction_series()`：竞价过程的价 / 虚拟匹配量 / 未匹配量（秒级）
-      * 本接口 + `opening_matches()`：09:25 正式撮合的成交价与成交量
+      * `get_opening_auction()`：09:25 正式撮合的成交价 / 成交量 / 笔数
 
 参考: https://github.com/electkismet/eltdx
       （docs/methods/7709-当日成交明细.md）
@@ -52,29 +53,12 @@ from pytdx.parser.base import BaseParser
 # 命令号
 TYPE_TODAY_TICKS = 0x0fc5
 
-# 成交状态（buyorsell 字段，其余 0/1=主动卖/买、5=盘后固定价格成交）
-STATUS_OPENING_MATCH = 2
-STATUS_AUCTION_SNAPSHOT = 8
-
-# 09:25 正式撮合的时间标签
-OPENING_MATCH_TIME = "09:25"
-
-
-def opening_matches(ticks):
-    """从一页成交明细里挑出 09:25 集合竞价正式撮合记录。
-
-    注意不能用 `buyorsell == STATUS_OPENING_MATCH` 单独判断：连续竞价里
-    也有状态 2 的记录，必须同时看时间。
-
-    :param ticks: `get_transaction_data` 的返回值
-    :return: 命中的记录列表（正常情况下 0 或 1 条）
-    """
-    return [tick for tick in ticks
-            if tick["time"] == OPENING_MATCH_TIME
-            and tick["buyorsell"] != STATUS_AUCTION_SNAPSHOT]
-
 
 class GetTransactionData(BaseParser):
+
+    # 该命令一页的载荷格式与单页上限（翻页查询按 page_size 步进）
+    layout = TODAY_LAYOUT
+    page_size = TDXParams.MAX_TICK_COUNT
 
     def setParams(self, market, code, start, count):
         """
@@ -112,33 +96,14 @@ class GetTransactionData(BaseParser):
         self.send_pkg = build_v2_request(TYPE_TODAY_TICKS, payload)
 
     def parseResponse(self, body_buf):
-        if len(body_buf) < 2:
-            return []
+        return parse_ticks(body_buf, self.layout)
 
-        (num,) = struct.unpack("<H", body_buf[:2])
-        pos = 2
-        ticks = []
-        last_price = 0
-        for _ in range(num):
-            try:
-                hour, minute, pos = get_time(body_buf, pos)
-                price_raw, pos = get_price(body_buf, pos)
-                vol, pos = get_price(body_buf, pos)
-                order_count, pos = get_price(body_buf, pos)
-                status, pos = get_price(body_buf, pos)
-                _, pos = get_price(body_buf, pos)
-            except Exception:
-                log.debug("transaction payload truncated at %d" % pos)
-                break
 
-            last_price = last_price + price_raw
+class GetOpeningAuction(GetTransactionData):
+    """``GetTransactionData`` 的轻量版本：只扫描到 09:25 正式撮合。
 
-            ticks.append(OrderedDict([
-                ("time", "%02d:%02d" % (hour, minute)),
-                ("price", float(last_price) / 100),
-                ("vol", vol),
-                ("num", order_count),
-                ("buyorsell", status),
-            ]))
+    ``parseResponse`` 返回 :class:`OpeningScan`。
+    """
 
-        return ticks
+    def parseResponse(self, body_buf):
+        return scan_opening_page(body_buf, self.layout)

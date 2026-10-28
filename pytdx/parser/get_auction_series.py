@@ -39,8 +39,7 @@ from pytdx.parser.base import BaseParser
     每条间隔 3-10 秒，是竞价过程分析的权威入口（服务端保留约一年）。
 
     注意：序列末尾的 `09:25:00`（如果有）仍是**虚拟撮合**快照，不是成交。
-    09:25 的正式撮合请用 `get_transaction_data` + `opening_matches()`，
-    或直接用 `TdxHq_API.get_opening_auction()`。
+    09:25 的正式撮合请用 `TdxHq_API.get_opening_auction()`。
 
 参考: https://github.com/electkismet/eltdx
       （docs/methods/7709-集合竞价明细.md）

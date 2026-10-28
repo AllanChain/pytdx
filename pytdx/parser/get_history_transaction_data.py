@@ -1,12 +1,20 @@
 # coding=utf-8
 
-from pytdx.parser.base import BaseParser
-from pytdx.helper import get_datetime, get_volume, get_price, get_time
-from collections import OrderedDict
 import struct
+
 import six
 
+from pytdx.params import TDXParams
+from pytdx.parser.base import BaseParser
+from pytdx.parser.opening_auction import scan_opening_page
+from pytdx.parser.ticks import HISTORY_LAYOUT, parse_ticks
+
+
 class GetHistoryTransactionData(BaseParser):
+
+    # 该命令一页的载荷格式与单页上限（翻页查询按 page_size 步进）
+    layout = HISTORY_LAYOUT
+    page_size = TDXParams.MAX_TRANSACTION_COUNT
 
     def setParams(self, market, code, start, count, date):
         if type(code) is six.text_type:
@@ -20,40 +28,17 @@ class GetHistoryTransactionData(BaseParser):
         self.send_pkg = pkg
 
     def parseResponse(self, body_buf):
-        pos = 0
-        (num, ) = struct.unpack("<H", body_buf[:2])
-        pos += 2
-        ticks = []
+        return parse_ticks(body_buf, self.layout)
 
-        # skip 4 bytes
-        pos += 4
 
-        last_price = 0
-        for i in range(num):
-            ### ?? get_time
-            # \x80\x03 = 14:56
+class GetHistoryOpeningAuction(GetHistoryTransactionData):
+    """``GetHistoryTransactionData`` 的轻量版本：只扫描到 09:25 正式撮合。
 
-            hour, minute, pos = get_time(body_buf, pos)
+    ``parseResponse`` 返回 :class:`OpeningScan`。
+    """
 
-            price_raw, pos = get_price(body_buf, pos)
-            vol, pos = get_price(body_buf, pos)
-            buyorsell, pos = get_price(body_buf, pos)
-            _, pos = get_price(body_buf, pos)
-
-            last_price = last_price + price_raw
-
-            tick = OrderedDict(
-                [
-                    ("time", "%02d:%02d" % (hour, minute)),
-                    ("price", float(last_price)/100),
-                    ("vol", vol),
-                    ("buyorsell", buyorsell),
-                ]
-            )
-
-            ticks.append(tick)
-
-        return ticks
+    def parseResponse(self, body_buf):
+        return scan_opening_page(body_buf, self.layout)
 
 
 if __name__ == '__main__':

@@ -21,15 +21,16 @@ from pytdx.parser.get_company_info_category import GetCompanyInfoCategory
 from pytdx.parser.get_company_info_content import GetCompanyInfoContent
 from pytdx.parser.get_finance_info import GetFinanceInfo
 from pytdx.parser.get_history_minute_time_data import GetHistoryMinuteTimeData
-from pytdx.parser.get_history_transaction_data import GetHistoryTransactionData
+from pytdx.parser.get_history_transaction_data import (
+    GetHistoryOpeningAuction, GetHistoryTransactionData)
 from pytdx.parser.get_index_bars import GetIndexBarsCmd
 from pytdx.parser.get_minute_time_data import GetMinuteTimeData
 from pytdx.parser.get_security_bars import GetSecurityBarsCmd
 from pytdx.parser.get_security_count import GetSecurityCountCmd
 from pytdx.parser.get_security_list import GetSecurityList
 from pytdx.parser.get_security_quotes import GetSecurityQuotesCmd
-from pytdx.parser.get_transaction_data import (GetTransactionData,
-                                               opening_matches)
+from pytdx.parser.get_transaction_data import (GetOpeningAuction,
+                                               GetTransactionData)
 from pytdx.parser.get_xdxr_info import GetXdXrInfo
 from pytdx.parser.get_report_file import GetReportFile
 from pytdx.parser.setup_commands import SetupCmd1, SetupCmd2, SetupCmd3, SetupCmdV2
@@ -148,6 +149,24 @@ class TdxHq_API(BaseSocketClient):
         cmd.setParams(market, code, date, start=start, limit=limit)
         return cmd.call_api()
 
+    def _find_opening_auction(self, parser_cls, max_pages, market, code,
+                              *extra):
+        """按页往回翻，直到扫出 09:25 正式撮合或确定没有。
+
+        每页只解码到 09:25；页首已晚于 09:25 时只解码第一条记录。
+        单页条数取 ``parser_cls.page_size``。
+        """
+        page_size = parser_cls.page_size
+        for page in range(max_pages):
+            cmd = parser_cls(self.client, lock=self.lock)
+            cmd.setParams(market, code, page * page_size, page_size, *extra)
+            scan = cmd.call_api()
+            if scan.done:
+                return scan.matched
+        log.debug("opening auction not found in %d pages" % max_pages)
+        return None
+
+    @update_last_ack_time
     def get_opening_auction(self, market, code, max_pages=20):
         """09:25 集合竞价正式撮合（成交价 / 成交量 / 笔数）
 
@@ -155,22 +174,32 @@ class TdxHq_API(BaseSocketClient):
         竞价快照的那一条；当天还没到 09:25 或超过 `max_pages` 页时返回 None。
         非交易日主站会返回最近一个交易日的数据。
 
+        只解析到 09:25 为止，不完整解析每一页。
+
         :param market: 市场代码 0=深圳 1=上海
         :param code: 6 位代码
         :param max_pages: 最多翻多少页（每页 1800 条）
         :return: {'time', 'price', 'vol', 'num', 'buyorsell'} 或 None
         """
-        page_size = TDXParams.MAX_TICK_COUNT
-        for page in range(max_pages):
-            ticks = self.get_transaction_data(market, code,
-                                              page * page_size, page_size)
-            if not ticks:
-                return None
-            matched = opening_matches(ticks)
-            if matched:
-                return matched[0]
-        log.debug("opening auction not found in %d pages" % max_pages)
-        return None
+        return self._find_opening_auction(
+            GetOpeningAuction, max_pages, market, code)
+
+    @update_last_ack_time
+    def get_history_opening_auction(self, market, code, date, max_pages=20):
+        """历史某日 09:25 集合竞价正式撮合（成交价 / 成交量）
+
+        与 :meth:`get_opening_auction` 相同，但读取历史逐笔（``0x0fb5``）。
+        历史逐笔没有成交笔数字段，故不返回 ``num``。
+        只解析到 09:25 为止，不完整解析每一页。
+
+        :param market: 市场代码 0=深圳 1=上海
+        :param code: 6 位代码
+        :param date: 交易日期，如 20261027
+        :param max_pages: 最多翻多少页（每页 2000 条）
+        :return: {'time', 'price', 'vol', 'buyorsell'} 或 None
+        """
+        return self._find_opening_auction(
+            GetHistoryOpeningAuction, max_pages, market, code, date)
 
     @update_last_ack_time
     def get_history_transaction_data(self, market, code, start, count, date):

@@ -298,10 +298,20 @@ api.get_opening_auction(TDXParams.MARKET_SZ, &amp;apos;000001&amp;apos;)
 
 ```
 
-它内部按页往回翻 `get_transaction_data`，取 `time == &amp;apos;09:25&amp;apos;` 且
+它内部按页往回翻当日逐笔，取 `time == &amp;apos;09:25&amp;apos;` 且
 状态不是竞价快照（`buyorsell != 8`）的那一条；`vol` 单位是手。
-需要历史某日的竞价结果时，用第 9 条的 `get_history_transaction_data`，
-筛选条件同上（历史上竞价段的状态同样是 `8` / `2`）。
+需要历史某日的竞价结果时，用 `get_history_opening_auction`：
+
+```
+api.get_history_opening_auction(TDXParams.MARKET_SH, &amp;apos;600519&amp;apos;, 20261027)
+# {'time': '09:25', 'price': 1343.88, 'vol': 210, 'buyorsell': 2}
+# 停牌、无竞价或超出主站保留范围时返回 None
+
+```
+
+两个 `get_*_opening_auction` 都只解析到 09:25 为止：页首时间已晚于 09:25 时
+只读第一条，否则扫到 09:25 即停，不会完整解析整页逐笔，适合批量回补历史
+竞价数据。
 
 ## 多线程支持
 
