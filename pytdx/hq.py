@@ -16,6 +16,7 @@ from pytdx.base_socket_client import BaseSocketClient, update_last_ack_time
 from pytdx.heartbeat import HqHeartBeatThread
 from pytdx.log import DEBUG, log
 from pytdx.params import TDXParams
+from pytdx.parser.get_auction_series import GetAuctionSeries
 from pytdx.parser.get_company_info_category import GetCompanyInfoCategory
 from pytdx.parser.get_company_info_content import GetCompanyInfoContent
 from pytdx.parser.get_finance_info import GetFinanceInfo
@@ -27,7 +28,8 @@ from pytdx.parser.get_security_bars import GetSecurityBarsCmd
 from pytdx.parser.get_security_count import GetSecurityCountCmd
 from pytdx.parser.get_security_list import GetSecurityList
 from pytdx.parser.get_security_quotes import GetSecurityQuotesCmd
-from pytdx.parser.get_transaction_data import GetTransactionData
+from pytdx.parser.get_transaction_data import (GetTransactionData,
+                                               opening_matches)
 from pytdx.parser.get_xdxr_info import GetXdXrInfo
 from pytdx.parser.get_report_file import GetReportFile
 from pytdx.parser.setup_commands import SetupCmd1, SetupCmd2, SetupCmd3, SetupCmdV2
@@ -39,11 +41,20 @@ if __name__ == '__main__':
 
 class TdxHq_API(BaseSocketClient):
 
+    # 是否在建连时发送旧协议登录帧（`0c 02 18 93/94` 那三帧）
+    #
+    # 2026-07 协议更新后，登录只用新帧（80B，见 SetupCmdV2）就够了：
+    # 目录 / 财务 / 除权 / 历史分时 / 历史逐笔 在同一连接上照常应答，
+    # 而且旧登录帧会把会话切到旧语义——当日逐笔 `0x0fc5` 会静默返回空包。
+    # 只有对接仍只认旧帧的老主站时才需要打开。
+    send_legacy_setup = False
+
     def setup(self):
-        # 旧协议的会话（目录 / 财务 / 除权 / 历史分时等命令仍然只有旧帧可用）
-        SetupCmd1(self.client).call_api()
-        SetupCmd2(self.client).call_api()
-        SetupCmd3(self.client).call_api()
+        if self.send_legacy_setup:
+            # 旧协议的会话（老主站目录 / 财务等命令可能需要）
+            SetupCmd1(self.client).call_api()
+            SetupCmd2(self.client).call_api()
+            SetupCmd3(self.client).call_api()
         # 新协议的登录帧（2026-07 起 K 线 / 快照 / 分时 / 逐笔等行情命令
         # 必须使用新帧，否则服务端静默返回空数据）
         SetupCmdV2(self.client).call_api()
@@ -114,6 +125,52 @@ class TdxHq_API(BaseSocketClient):
         cmd = GetTransactionData(self.client, lock=self.lock)
         cmd.setParams(market, code, start, count)
         return cmd.call_api()
+
+    @update_last_ack_time
+    def get_auction_series(self, market, code, date=None, start=0,
+                           limit=TDXParams.MAX_AUCTION_COUNT):
+        """集合竞价过程快照（当日或历史）
+
+        返回早盘 09:15-09:25 / 尾盘 14:57-15:00 的秒级竞价快照，每条含
+        `time` / `price`（虚拟撮合价）/ `matched_vol`（虚拟匹配量，手）/
+        `unmatched_vol`（未匹配量，正 = 买方剩余，负 = 卖方剩余）。
+
+        注意：序列末尾的 09:25:00（如果有）仍是虚拟撮合，不是成交；
+        正式撮合成交请用 `get_opening_auction()`。
+
+        :param market: 市场代码 0=深圳 1=上海
+        :param code: 6 位代码
+        :param date: None/0 = 当前交易日；也可传 20261027 或 '2026-10-27'
+        :param start: 分页起始序号
+        :param limit: 单页条数，上限 500
+        """
+        cmd = GetAuctionSeries(self.client, lock=self.lock)
+        cmd.setParams(market, code, date, start=start, limit=limit)
+        return cmd.call_api()
+
+    def get_opening_auction(self, market, code, max_pages=20):
+        """09:25 集合竞价正式撮合（成交价 / 成交量 / 笔数）
+
+        内部从最新一页成交明细往回翻，取 `time == '09:25'` 且状态不是
+        竞价快照的那一条；当天还没到 09:25 或超过 `max_pages` 页时返回 None。
+        非交易日主站会返回最近一个交易日的数据。
+
+        :param market: 市场代码 0=深圳 1=上海
+        :param code: 6 位代码
+        :param max_pages: 最多翻多少页（每页 1800 条）
+        :return: {'time', 'price', 'vol', 'num', 'buyorsell'} 或 None
+        """
+        page_size = TDXParams.MAX_TICK_COUNT
+        for page in range(max_pages):
+            ticks = self.get_transaction_data(market, code,
+                                              page * page_size, page_size)
+            if not ticks:
+                return None
+            matched = opening_matches(ticks)
+            if matched:
+                return matched[0]
+        log.debug("opening auction not found in %d pages" % max_pages)
+        return None
 
     @update_last_ack_time
     def get_history_transaction_data(self, market, code, start, count, date):

@@ -130,3 +130,29 @@ def indexbytes(data, pos):
             return six.indexbytes(data, pos)
     else:
         return data[pos]
+
+
+def build_v2_request(msg_type, data, msg_id=0, control=0x01):
+    """构造新一代 7709 协议（2026-07 起行情类命令使用）的请求帧。
+
+    帧头 12 字节::
+
+        [0x0c 前缀][u32 msg_id][u8 control][u16 长度][u16 长度][u16 msg_type]
+
+    其中长度字段 = len(data) + 2，随后紧跟 data。响应帧头 16 字节为
+    ``[b1 cb 74 00][u8 控制][u32 msg_id][u8 保留][u16 msg_type]
+    [u16 载荷长][u16 载荷长]``，``BaseSocketClient`` 的通用解析器可以直接读。
+
+    :param msg_type: 命令号（如 0x056a 集合竞价、0x0fc5 当日成交明细）
+    :param data: 命令参数区
+    """
+    data = bytearray(data)
+    length = struct.pack("<H", len(data) + 2)
+    head = bytearray([0x0c])
+    head.extend(struct.pack("<I", msg_id))
+    head.append(control)
+    head.extend(length)
+    head.extend(length)
+    head.extend(struct.pack("<H", msg_type))
+    head.extend(data)
+    return head

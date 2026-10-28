@@ -38,8 +38,13 @@ class TDXParams:
 
 
     # ref : https://github.com/rainx/pytdx/issues/7
-    # 分笔行情最多2000条
+    # 分笔行情最多2000条（旧协议 0x0fb5 / 0x0fc5 之前的上限；
+    # 新协议当日逐笔单页上限见 MAX_TICK_COUNT）
     MAX_TRANSACTION_COUNT = 2000
+    # 新协议当日逐笔（0x0fc5）单页上限
+    MAX_TICK_COUNT = 1800
+    # 新协议集合竞价过程快照（0x056a）单页上限
+    MAX_AUCTION_COUNT = 500
     # k线数据单次最多 700 条（2026-07 服务端协议更新后的上限，
     # 旧协议为 800）
     MAX_KLINE_COUNT = 700

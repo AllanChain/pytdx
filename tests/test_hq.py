@@ -81,11 +81,38 @@ def test_all_functions(multithread, heartbeat, auto_retry, raise_exception):
         assert len(data) > 0
 
         log.info("查询分时成交")
-        # 2026-07 服务端协议更新后，当日逐笔的新协议帧尚未定位，这里可能返回空列表；
-        # 历史逐笔（下面的用例）不受影响
+        # 2026-07 协议更新后旧帧被静默丢弃，这里已迁移到新帧 0x0fc5
         data = api.get_transaction_data(TDXParams.MARKET_SZ, '000001', 0, 30)
         assert data is not None
         assert type(data) is list
+        assert len(data) > 0
+        assert set(data[0].keys()) == {'time', 'price', 'vol', 'num',
+                                       'buyorsell'}
+
+        log.info("查询集合竞价过程快照")
+        data = api.get_auction_series(TDXParams.MARKET_SZ, '000001')
+        assert data is not None
+        assert type(data) is list
+        assert len(data) > 0
+        assert set(data[0].keys()) == {'time', 'price', 'matched_vol',
+                                       'unmatched_vol'}
+        assert data[0]['time'].count(':') == 2
+
+        log.info("查询历史集合竞价过程快照")
+        # 主站只保留约一年内的竞价过程，日期取当前最近日线的前一根
+        bars = api.get_security_bars(9, TDXParams.MARKET_SZ, '000001', 1, 1)
+        history_date = int(bars[0]['datetime'][:10].replace('-', ''))
+        data = api.get_auction_series(TDXParams.MARKET_SZ, '000001',
+                                      history_date)
+        assert data is not None
+        assert type(data) is list
+        assert len(data) > 0
+
+        log.info("查询 09:25 集合竞价正式撮合")
+        # 盘中 09:25 之前、或非交易日跑测试时为 None
+        data = api.get_opening_auction(TDXParams.MARKET_SZ, '000001')
+        assert data is None or (data['time'] == '09:25' and data['price'] > 0
+                                and data['buyorsell'] != 8)
 
         log.info("查询历史分时成交")
         data = api.get_history_transaction_data(

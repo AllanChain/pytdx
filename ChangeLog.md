@@ -1,3 +1,12 @@
+1.74
+---
+* 新增 `get_auction_series(market, code, date=None, start=0, limit=500)`：集合竞价过程快照（新协议 `0x056a`），返回早盘 09:15-09:25 / 尾盘 14:57-15:00 的秒级 `time` / `price` / `matched_vol`（虚拟匹配量）/ `unmatched_vol`（未匹配量，带符号）；当日与历史（实测约一年内）都可查
+* 新增 `get_opening_auction(market, code, max_pages=20)`：自动翻页取 09:25 集合竞价正式撮合（`price` / `vol` / `num`），未到 09:25 或未找到返回 `None`
+* `TDXParams` 新增 `MAX_TICK_COUNT = 1800`（当日逐笔单页上限）与 `MAX_AUCTION_COUNT = 500`（竞价快照单页上限）
+* `get_transaction_data`（当日逐笔）迁移到新协议 `0x0fc5`，恢复可用（单页上限 1800 条）：`buyorsell` 为 `2` 的那条即 09:25 集合竞价正式撮合（价 = 开盘价、`vol` = 竞价成交量），`8` 为竞价过程快照（`vol` 恒 0），另可见 `0/1` 连续竞价与 `5` 盘后固定价格成交
+* 修复 `TdxHq_API.setup()`：建连时不再发送旧协议登录帧（`SetupCmd1/2/3`），改为新增开关 `TdxHq_API.send_legacy_setup`（默认 `False`）。实测只发新帧登录即可使用目录 / 财务 / 除权 / 历史分时 / 历史逐笔等全部旧命令；而旧登录帧会把会话切回旧语义，导致 `0x0fc5`（当日逐笔）静默返回空包
+* `get_history_transaction_data`（历史逐笔）继续使用旧帧 `0x0fb5`，不受影响
+
 1.73
 ---
 * 修复 2026-07 通达信服务端协议更新后行情类接口全部返回空的问题，迁移到新一代行情帧（连接时额外发送 80 字节新协议登录帧 `SetupCmdV2`）：

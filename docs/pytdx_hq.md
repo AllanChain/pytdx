@@ -178,6 +178,15 @@ api.get_transaction_data(TDXParams.MARKET_SZ, &amp;apos;000001&amp;apos;, 0, 30)
 
 ```
 
+`start` 是从**最新一笔往回**的偏移（0 = 最新一页），单页上限 1800 条。
+`buyorsell` 字段即成交状态：`0/1` 主动卖/买、`2` = 09:25 集合竞价正式撮合
+（价格即当日开盘价，`vol` 即竞价成交量）、`5` = 盘后固定价格成交、
+`8` = 集合竞价过程快照（`vol` 恒为 0，价格是虚拟撮合价）。
+
+> 2026-07 服务端协议更新后，这条接口走的是新帧 `0x0fc5`。注意建连时
+> 不要再发旧协议登录帧（`TdxHq_API.send_legacy_setup` 默认 False），
+> 否则服务端会切回旧语义、`0x0fc5` 静默返回空包。
+
 ### 9 : 查询历史分笔成交
 
 参数：市场代码， 股票代码，起始位置，日期 数量 如： 0,000001,0,10,20170209
@@ -255,6 +264,44 @@ api.get_and_parse_block_info("block.dat")
 api.get_and_parse_block_info(TDXParams.BLOCK_SZ)
 
 ```
+
+### 16 : 查询集合竞价过程快照
+
+参数：市场代码， 股票代码， 日期（可选，`None`/`0` = 当前交易日）
+
+```
+# 当日早盘 + 尾盘竞价过程
+api.get_auction_series(TDXParams.MARKET_SZ, &amp;apos;000001&amp;apos;)
+
+# 历史某日（实测主站保留约一年内的竞价过程数据）
+api.get_auction_series(TDXParams.MARKET_SH, &amp;apos;600519&amp;apos;, 20261027)
+api.get_auction_series(TDXParams.MARKET_SH, &amp;apos;600519&amp;apos;, &amp;apos;2026-10-27&amp;apos;)
+
+```
+
+返回秒级的竞价快照列表（每条间隔 3-10 秒），字段：
+
+| 字段 | 含义 |
+| --- | --- |
+| `time` | `HH:MM:SS`，早盘 09:15-09:25、尾盘 14:57-15:00 |
+| `price` | 当前虚拟撮合价（= 官方客户端竞价图那条线） |
+| `matched_vol` | 虚拟匹配量（手） |
+| `unmatched_vol` | 未匹配量，带符号：正 = 买方剩余，负 = 卖方剩余 |
+
+注意：序列里的 `09:25:00`（如果有）仍是**虚拟撮合**快照，不是成交。
+09:25 的正式撮合成交量 / 成交价用下面这个接口：
+
+```
+api.get_opening_auction(TDXParams.MARKET_SZ, &amp;apos;000001&amp;apos;)
+# {'time': '09:25', 'price': 11.43, 'vol': 19643, 'num': 438, 'buyorsell': 2}
+# 未到 09:25 或非交易日返回 None
+
+```
+
+它内部按页往回翻 `get_transaction_data`，取 `time == &amp;apos;09:25&amp;apos;` 且
+状态不是竞价快照（`buyorsell != 8`）的那一条；`vol` 单位是手。
+需要历史某日的竞价结果时，用第 9 条的 `get_history_transaction_data`，
+筛选条件同上（历史上竞价段的状态同样是 `8` / `2`）。
 
 ## 多线程支持
 
